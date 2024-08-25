@@ -1,5 +1,5 @@
 param(
-    $subscriptionId = "7ca8fcb0-85b9-458e-9292-16f3b1c91f22",
+    $subscriptionId = "e1aa94ea-64ec-41ad-863a-e68b5cee827e",
     $outputpath = ".\"
 )
 
@@ -35,9 +35,10 @@ foreach ($sqlServer in $sqlServers) {
         $databaseName = $database.DatabaseName
         $databaseResourceId = $database.ResourceId
         $databaseSkuName = $database.SkuName
+        $CurrentServiceObjectiveName = $database.CurrentServiceObjectiveName
 
         # Define metrics parameters
-        $metricNames = @("allocated_data_storage", "storage", "cpu_percent", "sql_instance_memory_percent", "dtu_consumption_percent")
+        $metricNames = @("allocated_data_storage", "storage", "cpu_percent", "sql_instance_memory_percent", "dtu_consumption_percent","dtu_limit","dtu_used")
         $metricNamespace = "Microsoft.Sql/servers/databases"
 
         # Initialize an object to store metrics data
@@ -47,6 +48,7 @@ foreach ($sqlServer in $sqlServers) {
             'DatabaseName'      = $databaseName
             'ResourceGroupName' = $resourceGroupName
             'databaseSkuName'   = $databaseSkuName
+            'CurrentServiceObjectiveName' = $CurrentServiceObjectiveName
         }
 
         # Get metrics data for each metric
@@ -76,9 +78,9 @@ foreach ($sqlServer in $sqlServers) {
 
             # Calculate the average if there are non-null, non-zero data points
             if ($dataPointCount -gt 0) {
+                Write-Host "$metricName"
                 $averageValue = $totalMetricCount / $dataPointCount
-                $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value $averageValue -Force
-
+                
                 # Additional formatting for specific metrics
                 if ($metricName -eq "cpu_percent") {
                     $averageValue = [math]::Round($metricsData.cpu_percent, 3)
@@ -89,9 +91,8 @@ foreach ($sqlServer in $sqlServers) {
                 if ($metricName -eq "storage" -or $metricName -eq "allocated_data_storage") {
                     $averageValue = [math]::Round($averageValue / (1024 * 1024), 3)
                 }
-                if ($metricName -eq "dtu_percentage" -or $metricName -eq "dtu_consumption_percent") {
-                    $averageValue = [math]::Round($mentricsData.dtu_consumption_percent, 3)
-                }
+
+                $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value $averageValue -Force
             }
             else {
                 $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value 0 -Force
@@ -105,7 +106,14 @@ foreach ($sqlServer in $sqlServers) {
 
 # Save results to CSV file (overwrite if the file exists)
 $csvFilePath = "$outputpath\SQLDatabaseMetricsCount.csv"
-$resultsArray | Select-Object -Property SubscriptionName, SqlServerName, DatabaseName, ResourceGroupName, databaseSkuName, @{Name = "Data space allocated"; Expression = { $_.allocated_data_storage } }, @{Name = "Data space used"; Expression = { $_.storage } }, @{Name = "Percentage CPU"; Expression = { $_.cpu_percent } }, @{Name = "DTU Consumption Percentage"; Expression = { $_.dtu_consumption_percent } }, sql_instance_memory_percent | Export-Csv -Path $csvFilePath -NoTypeInformation -Force
+$resultsArray | Select-Object -Property SubscriptionName, SqlServerName, DatabaseName, ResourceGroupName, databaseSkuName, CurrentServiceObjectiveName, 
+@{Name = "Data space allocated"; Expression = { $_.allocated_data_storage }}, 
+@{Name = "Data space used"; Expression = { $_.storage }}, 
+@{Name = "Percentage CPU"; Expression = { $_.cpu_percent }},
+@{Name = "DTU Consumption Percentage"; Expression = { $_.dtu_consumption_percent }},
+@{Name = "DTU Limit"; Expression = { $_.dtu_limit }},
+@{Name = "DTU Used"; Expression = { $_.dtu_used }},
+sql_instance_memory_percent | Export-Csv -Path $csvFilePath -NoTypeInformation -Force
 
 
 

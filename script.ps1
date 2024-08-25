@@ -1,5 +1,5 @@
 param(
-    $subscriptionId = "b772148d-3d10-4877-9b5f-91fae5e16478",
+    $subscriptionId = "7ca8fcb0-85b9-458e-9292-16f3b1c91f22",
     $outputpath = ".\"
 )
 
@@ -8,7 +8,7 @@ Connect-AzAccount -SubscriptionId $subscriptionId
 Set-AzContext -SubscriptionId $subscriptionId
 
 # Define time range
-$timeFrame = (Get-Date).AddDays(-1)
+$timeFrame = (Get-Date).AddDays(-30)
 $startDate = $timeFrame.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $endDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
@@ -105,7 +105,7 @@ foreach ($sqlServer in $sqlServers) {
 
 # Save results to CSV file (overwrite if the file exists)
 $csvFilePath = "$outputpath\SQLDatabaseMetricsCount.csv"
-$resultsArray | Select-Object -Property SubscriptionName, SqlServerName, DatabaseName, ResourceGroupName, @{Name = "Data space allocated"; Expression = { $_.allocated_data_storage } }, @{Name = "Data space used"; Expression = { $_.storage } }, @{Name = "Percentage CPU"; Expression = { $_.cpu_percent } }, @{Name = "DTU Consumption Percentage"; Expression = { $_.dtu_consumption_percent } }, sql_instance_memory_percent | Export-Csv -Path $csvFilePath -NoTypeInformation -Force
+$resultsArray | Select-Object -Property SubscriptionName, SqlServerName, DatabaseName, ResourceGroupName, databaseSkuName, @{Name = "Data space allocated"; Expression = { $_.allocated_data_storage } }, @{Name = "Data space used"; Expression = { $_.storage } }, @{Name = "Percentage CPU"; Expression = { $_.cpu_percent } }, @{Name = "DTU Consumption Percentage"; Expression = { $_.dtu_consumption_percent } }, sql_instance_memory_percent | Export-Csv -Path $csvFilePath -NoTypeInformation -Force
 
 
 

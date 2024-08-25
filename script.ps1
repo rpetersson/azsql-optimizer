@@ -91,7 +91,9 @@ foreach ($sqlServer in $sqlServers) {
                 if ($metricName -eq "storage" -or $metricName -eq "allocated_data_storage") {
                     $averageValue = [math]::Round($averageValue / (1024 * 1024), 3)
                 }
-
+                if ($metricName -eq "dtu_used") { #Some bug here...
+                    $averageValue #= [math]::Round($metricName.dtu_used, 3)
+                }
                 $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value $averageValue -Force
             }
             else {
@@ -105,14 +107,13 @@ foreach ($sqlServer in $sqlServers) {
 }
 
 # Save results to CSV file (overwrite if the file exists)
-$csvFilePath = "$outputpath\SQLDatabaseMetricsCount.csv"
+$csvFilePath = "$outputpath\data.csv"
 $resultsArray | Select-Object -Property SubscriptionName, SqlServerName, DatabaseName, ResourceGroupName, databaseSkuName, CurrentServiceObjectiveName, 
 @{Name = "Data space allocated"; Expression = { $_.allocated_data_storage }}, 
 @{Name = "Data space used"; Expression = { $_.storage }}, 
 @{Name = "Percentage CPU"; Expression = { $_.cpu_percent }},
-@{Name = "DTU Consumption Percentage"; Expression = { $_.dtu_consumption_percent }},
 @{Name = "DTU Limit"; Expression = { $_.dtu_limit }},
-@{Name = "DTU Used"; Expression = { $_.dtu_used }},
+@{Name = "DTU Used Average"; Expression = { $_.dtu_used }},
 sql_instance_memory_percent | Export-Csv -Path $csvFilePath -NoTypeInformation -Force
 
 

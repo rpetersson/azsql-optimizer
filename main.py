@@ -1,5 +1,14 @@
 import streamlit as st
-st.write("My first Streamlit app 🎈")
+import matplotlib.pyplot as plt
+import pandas as pd
+import numpy as np
+
+
+st.title('Azure SQL Right Sizing Tool')
 
 # Get data.
+df = pd.read_csv('data.csv')
 
+#Highlight min column DTU Consumption Percentage evry value below 0.5
+
+st.dataframe(df.style.background_gradient(cmap='viridis', low=0.00, high=1, subset=['DTU Consumption Percentage']))

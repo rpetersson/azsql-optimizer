@@ -1,10 +1,23 @@
+
+
+
+
 param(
-    $subscriptionId = "e1aa94ea-64ec-41ad-863a-e68b5cee827e",
     $outputpath = ".\"
 )
 
+$subscriptionIds = Get-AzSubscription | Select-Object -ExpandProperty Id
+
 # Connect and set the subscription context
 Connect-AzAccount -SubscriptionId $subscriptionId
+# Initialize an empty array to store results
+$resultsArray = @()
+
+#
+
+foreach ($subscriptionId in $subscriptionIds) {
+
+# Set the subscription context
 Set-AzContext -SubscriptionId $subscriptionId
 
 # Define time range
@@ -12,8 +25,7 @@ $timeFrame = (Get-Date).AddDays(-30)
 $startDate = $timeFrame.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $endDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 
-# Initialize an empty array to store results
-$resultsArray = @()
+
 
 # Get current subscription name
 $subscriptionName = (Get-AzContext).Subscription.Name
@@ -76,6 +88,12 @@ foreach ($sqlServer in $sqlServers) {
                 }
             }
 
+            # Filter
+            if ($database.CurrentServiceObjectiveName -like 'System*') {
+                # Skip system databases
+                continue
+            }
+
             # Calculate the average if there are non-null, non-zero data points
             if ($dataPointCount -gt 0) {
                 Write-Host "$metricName"
@@ -83,7 +101,7 @@ foreach ($sqlServer in $sqlServers) {
                 
                 # Additional formatting for specific metrics
                 if ($metricName -eq "cpu_percent") {
-                    $averageValue = [math]::Round($metricsData.cpu_percent, 3)
+                    $averageValue = [math]::Round($metricsData.cpu_percent, 5)
                 }
                 if ($metricName -eq "sql_instance_memory_percent") {
                     $averageValue = [math]::Round($metricsData.sql_instance_memory_percent, 2)
@@ -96,6 +114,8 @@ foreach ($sqlServer in $sqlServers) {
                 }
                 $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value $averageValue -Force
             }
+
+            
             else {
                 $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value 0 -Force
             }
@@ -104,6 +124,7 @@ foreach ($sqlServer in $sqlServers) {
         # Add metrics data to results array
         $resultsArray += $metricsData
     }
+}
 }
 
 # Save results to CSV file (overwrite if the file exists)
@@ -115,7 +136,5 @@ $resultsArray | Select-Object -Property SubscriptionName, SqlServerName, Databas
 @{Name = "DTU Limit"; Expression = { $_.dtu_limit }},
 @{Name = "DTU Used Average"; Expression = { $_.dtu_used }},
 sql_instance_memory_percent | Export-Csv -Path $csvFilePath -NoTypeInformation -Force
-
-
 
 Write-Host "Results saved to $csvFilePath"

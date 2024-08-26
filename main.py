@@ -11,5 +11,5 @@ df = pd.read_csv('data.csv')
 
 #Highlight min column DTU Consumption Percentage evry value below 0.5
 
-st.dataframe(df.style.background_gradient(cmap='viridis', low=0.00, high=1, subset=['DTU Used Average']))
+st.dataframe(df.style.background_gradient(cmap='viridis', low=0.00, high=1, subset=['DTU Used']))
 

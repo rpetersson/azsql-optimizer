@@ -51,12 +51,14 @@ foreach ($subscriptionId in $subscriptionIds) {
 
             # Initialize an object to store metrics data
             $metricsData = [PSCustomObject]@{
-                'SubscriptionName'            = $subscriptionName
-                'SqlServerName'               = $sqlServerName
-                'DatabaseName'                = $databaseName
-                'ResourceGroupName'           = $resourceGroupName
-                'databaseSkuName'             = $databaseSkuName
-                'CurrentServiceObjectiveName' = $CurrentServiceObjectiveName
+                'SubscriptionName'              = $subscriptionName
+                'SqlServerName'                 = $sqlServerName
+                'DatabaseName'                  = $databaseName
+                'ResourceGroupName'             = $resourceGroupName
+                'databaseSkuName'               = $databaseSkuName
+                'CurrentServiceObjectiveName'   = $CurrentServiceObjectiveName
+                'zoneRedundant'                 = $database.ZoneRedundant
+                'autoPause'                     = $database.AutoPauseDelayInMinutes
             }
 
             # Get metrics data for each metric
@@ -118,12 +120,13 @@ foreach ($subscriptionId in $subscriptionIds) {
 }
 # Save results to CSV file (overwrite if the file exists)
 $csvFilePath = "$outputpath\data.csv"
-$resultsArray | Select-Object -Property SubscriptionName, SqlServerName, DatabaseName, ResourceGroupName, databaseSkuName, CurrentServiceObjectiveName, 
+$resultsArray | Select-Object -Property SubscriptionName, SqlServerName, DatabaseName, ResourceGroupName, databaseSkuName, CurrentServiceObjectiveName, zoneRedundant, autoPause,
 @{Name = "Data space allocated"; Expression = { $_.allocated_data_storage } }, 
 @{Name = "Data space used"; Expression = { $_.storage } }, 
 @{Name = "Percentage CPU"; Expression = { $_.cpu_percent } },
 @{Name = "DTU Limit"; Expression = { $_.dtu_limit } },
 @{Name = "DTU Used Average"; Expression = { $_.dtu_used } },
+@{Name = "DTU Consumption Percentage"; Expression = { [math]::(($_.dtu_used / $_.dtu_limit)*100),3 } },
 sql_instance_memory_percent | Export-Csv -Path $csvFilePath -NoTypeInformation -Force
 
 Write-Host "Results saved to $csvFilePath"

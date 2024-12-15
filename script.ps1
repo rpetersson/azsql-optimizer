@@ -86,12 +86,7 @@ foreach ($subscriptionId in $subscriptionIds) {
                 }
 
                 # Filter
-                if ($database.CurrentServiceObjectiveName -like 'System*') {
-                    # Skip system databases
-                    continue
-                }
-
-                if ($database.CurrentServiceObjectiveName -like 'master*') {
+                if ($database.databaseSkuName -like 'System*') {
                     # Skip system databases
                     continue
                 }

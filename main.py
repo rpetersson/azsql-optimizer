@@ -2,12 +2,28 @@ import streamlit as st
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+from azure.identity import DefaultAzureCredential
+import subprocess
 
+# Add Azure Default Credentials
+credential = DefaultAzureCredential()
+
+# Execute PowerShell script
+def execute_powershell_script(script_path):
+    result = subprocess.run(["powershell", "-File", script_path], capture_output=True, text=True)
+    return result.stdout, result.stderr
+
+# Example usage
+script_output, script_error = execute_powershell_script("./script.ps1")
+if script_error:
+    st.error(f"Error executing PowerShell script: {script_error}")
+else:
+    st.success("PowerShell script executed successfully")
+    st.text(script_output)
 
 st.set_page_config(layout="wide")
 
 # SKU Pricing lookup table as dataframe
-
 
 # Sku pricing for Gen5 and Gen4 title
 st.title('Database SKU Pricing Overview')
@@ -30,24 +46,20 @@ sku_pricing_dtu = pd.DataFrame({
 # Convert Price column Price for DTUs and included storage from per hour to monthly
 sku_pricing_dtu['Price for DTUs and included storage'] = sku_pricing_dtu['Price for DTUs and included storage'].astype(float) * 24 * 31
 
-
 # Display both DTU and SKU pricing horizontaly
 rows = st.columns(2)
 rows[0].dataframe(sku_pricing)
 rows[1].dataframe(sku_pricing_dtu)
-
 
 st.title('Database DTU Consumption Overview')
 
 # Get data.
 df = pd.read_csv('data.csv')
 
-#
-
-#Add new column DTU Used Percentage
+# Add new column DTU Used Percentage
 df['DTU Used Percentage'] = (df['DTU Used Average'] / df['DTU Limit']) * 100
 
-#Add new column, lookup price for column CurrentServiceObjectiveName from dataframe sku_pricing_dtu
+# Add new column, lookup price for column CurrentServiceObjectiveName from dataframe sku_pricing_dtu
 df['Price'] = df['CurrentServiceObjectiveName'].map(sku_pricing_dtu.set_index('DTUs')['Price for DTUs and included storage'])
 
 # Drop column sql_instance_memory_percent
@@ -56,12 +68,11 @@ df.drop(columns=['sql_instance_memory_percent'], inplace=True)
 # Drop column sql_instance_cpu_percent
 df.drop(columns=['Percentage CPU'], inplace=True)
 
-
-#FILTER
+# FILTER
 # Only display standard sku
 filtered_df = df[df['databaseSkuName'].str.startswith('Standard')]
 
-#Highlight min column DTU Consumption Percentage evry value below 0.5
+# Highlight min column DTU Consumption Percentage evry value below 0.5
 st.dataframe(filtered_df.style.background_gradient(cmap='viridis', low=0.00, high=1, subset=['DTU Used Average']))
 
 # Display average DTU Used Percentage over all databases
@@ -73,12 +84,14 @@ st.write('Number of databases:', filtered_df['DatabaseName'].count())
 # Summerize Price for all filtered databases
 st.write('Total Price for all databases:', filtered_df['Price'].sum())
 
-
 st.title('Database Vcore Consumption Overview')
+
 # Get data.
 df = pd.read_csv('data.csv')
+
 # Filteraway all rows where databaseSkuName does not start with GP
 df = df[df['databaseSkuName'].str.startswith('GP')]
+
 # Display the dataframe
 st.dataframe(df.style.background_gradient(cmap='viridis', low=0.00, high=1, subset=['DTU Used Average']))
 
@@ -94,6 +107,7 @@ st.title('Database SKU Overview')
 
 # Get data.
 df = pd.read_csv('data.csv')
+
 # Display streamlit bar chart with amount on y-axis and databaseSkuName on x-axis
 chart_data = pd.DataFrame(df)
 st.bar_chart(chart_data['databaseSkuName'].value_counts())

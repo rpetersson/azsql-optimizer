@@ -1,7 +1,3 @@
-
-
-
-
 param(
     $outputpath = ".\"
 )
@@ -24,8 +20,6 @@ Set-AzContext -SubscriptionId $subscriptionId
 $timeFrame = (Get-Date).AddDays(-30)
 $startDate = $timeFrame.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
 $endDate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
-
-
 
 # Get current subscription name
 $subscriptionName = (Get-AzContext).Subscription.Name
@@ -65,59 +59,77 @@ foreach ($sqlServer in $sqlServers) {
 
         # Get metrics data for each metric
         foreach ($metricName in $metricNames) {
+            $retryCount = 0
+            $maxRetries = 3
+            $retryDelay = 5
 
-            $sqlMetric = Get-AzMetric -ResourceId $databaseResourceId -StartTime $startDate -EndTime $endDate -MetricNamespace $metricNamespace -MetricName $metricName -AggregationType Average -DetailedOutput -WarningAction SilentlyContinue
-            $sqlMetrics = $sqlMetric.Data
+            while ($retryCount -lt $maxRetries) {
+                try {
+                    $sqlMetric = Get-AzMetric -ResourceId $databaseResourceId -StartTime $startDate -EndTime $endDate -MetricNamespace $metricNamespace -MetricName $metricName -AggregationType Average -DetailedOutput -WarningAction SilentlyContinue
+                    $sqlMetrics = $sqlMetric.Data
 
-            # Calculate the total count for the current metric
-            $totalMetricCount = 0
-            $dataPointCount = 0
-            $nonZeroDataPointCount = 0
+                    # Calculate the total count for the current metric
+                    $totalMetricCount = 0
+                    $dataPointCount = 0
+                    $nonZeroDataPointCount = 0
 
-            foreach ($dataPoint in $sqlMetrics) {
-                $value = $dataPoint.Average
+                    foreach ($dataPoint in $sqlMetrics) {
+                        $value = $dataPoint.Average
 
-                # Exclude null or zero values
-                if ($null -ne $value) {
-                    $totalMetricCount += $value
-                    $dataPointCount++
+                        # Exclude null or zero values
+                        if ($null -ne $value) {
+                            $totalMetricCount += $value
+                            $dataPointCount++
 
-                    if ($value -ne 0) {
-                        $nonZeroDataPointCount++
+                            if ($value -ne 0) {
+                                $nonZeroDataPointCount++
+                            }
+                        }
                     }
-                }
-            }
 
-            # Filter
-            if ($database.CurrentServiceObjectiveName -like 'System*') {
-                # Skip system databases
-                continue
-            }
+                    # Filter
+                    if ($database.CurrentServiceObjectiveName -like 'System*') {
+                        # Skip system databases
+                        continue
+                    }
 
-            # Calculate the average if there are non-null, non-zero data points
-            if ($dataPointCount -gt 0) {
-                Write-Host "$metricName"
-                $averageValue = $totalMetricCount / $dataPointCount
-                
-                # Additional formatting for specific metrics
-                if ($metricName -eq "cpu_percent") {
-                    $averageValue = [math]::Round($metricsData.cpu_percent, 5)
+                    # Calculate the average if there are non-null, non-zero data points
+                    if ($dataPointCount -gt 0) {
+                        Write-Host "$metricName"
+                        $averageValue = $totalMetricCount / $dataPointCount
+                        
+                        # Additional formatting for specific metrics
+                        if ($metricName -eq "cpu_percent") {
+                            $averageValue = [math]::Round($averageValue, 5)
+                        }
+                        if ($metricName -eq "sql_instance_memory_percent") {
+                            $averageValue = [math]::Round($averageValue, 2)
+                        }
+                        if ($metricName -eq "storage" -or $metricName -eq "allocated_data_storage") {
+                            $averageValue = [math]::Round($averageValue / (1024 * 1024), 3)
+                        }
+                        if ($metricName -eq "dtu_used") {
+                            $averageValue = [math]::Round($averageValue, 3)
+                        }
+                        $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value $averageValue -Force
+                    } else {
+                        $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value 0 -Force
+                    }
+                } catch [System.Net.Http.HttpRequestException] {
+                    $retryCount++
+                    if ($retryCount -ge $maxRetries) {
+                        Write-Host "Error retrieving metric $metricName for database $metricsData.databaseName after $maxRetries attempts: $_"
+                        $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value "Error" -Force
+                        break
+                    } else {
+                        Write-Host "Retrying metric $metricName for database $metricsData.databaseName ($retryCount/$maxRetries)..."
+                        Start-Sleep -Seconds $retryDelay
+                    }
+                } catch {
+                    Write-Host "Error retrieving metric $metricName for database $metricsData.databaseName: $_"
+                    $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value "Error" -Force
+                    break
                 }
-                if ($metricName -eq "sql_instance_memory_percent") {
-                    $averageValue = [math]::Round($metricsData.sql_instance_memory_percent, 2)
-                }
-                if ($metricName -eq "storage" -or $metricName -eq "allocated_data_storage") {
-                    $averageValue = [math]::Round($averageValue / (1024 * 1024), 3)
-                }
-                if ($metricName -eq "dtu_used") { #Some bug here...
-                    $averageValue #= [math]::Round($metricName.dtu_used, 3)
-                }
-                $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value $averageValue -Force
-            }
-
-            
-            else {
-                $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value 0 -Force
             }
         }
 

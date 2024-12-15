@@ -91,6 +91,11 @@ foreach ($subscriptionId in $subscriptionIds) {
                     continue
                 }
 
+                if ($database.CurrentServiceObjectiveName -like 'master*') {
+                    # Skip system databases
+                    continue
+                }
+
                 # Calculate the average if there are non-null, non-zero data points
                 if ($dataPointCount -gt 0) {
                     Write-Host "$metricName"
@@ -111,10 +116,10 @@ foreach ($subscriptionId in $subscriptionIds) {
                     }
                     $metricsData | Add-Member -MemberType NoteProperty -Name $metricName -Value $averageValue -Force
                 }
-
-                # Add metrics data to results array
-                $resultsArray += $metricsData
             }
+            # Add metrics data to results array
+            $resultsArray += $metricsData
+            $resultsArray
         }
     }
 }

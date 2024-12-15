@@ -1,0 +1,71 @@
+# Azure SQL Rightsizing Script
+
+This PowerShell script collects metrics data for Azure SQL databases across all subscriptions and saves the results to a CSV file. The script connects to Azure, retrieves SQL server and database details, and gathers various metrics such as CPU usage, storage, and DTU consumption.
+
+## Prerequisites
+
+- PowerShell 5.1 or later
+- Azure PowerShell module (`Az`)
+
+## Installation
+
+1. Install the Azure PowerShell module if you haven't already:
+
+    ```powershell
+    Install-Module -Name Az -AllowClobber -Scope CurrentUser
+    ```
+
+2. Clone or download this repository to your local machine.
+
+## Usage
+
+1. Open a PowerShell terminal.
+
+2. Navigate to the directory containing the script:
+
+    ```powershell
+    cd /Users/robban/Documents/azure-sql-rightsize
+    ```
+
+3. Run the script with the desired output path for the CSV file:
+
+    ```powershell
+    .\script.ps1 -outputpath "C:\path\to\output\directory\"
+    ```
+
+    If no output path is specified, the script will save the CSV file in the current directory.
+
+4. The script will prompt you to log in to your Azure account. Follow the instructions to authenticate.
+
+5. The script will collect metrics data for all SQL databases in your subscriptions and save the results to a CSV file named `data.csv` in the specified output directory.
+
+## Output
+
+The CSV file will contain the following columns:
+
+- SubscriptionName
+- SqlServerName
+- DatabaseName
+- ResourceGroupName
+- databaseSkuName
+- CurrentServiceObjectiveName
+- zoneRedundant
+- autoPause
+- Data space allocated
+- Data space used
+- Percentage CPU
+- DTU Limit
+- DTU Used Average
+- DTU Consumption Percentage
+- sql_instance_memory_percent
+
+## Notes
+
+- The script excludes system databases from the metrics collection.
+- The script calculates the average values for the metrics over the past 30 days.
+
+## Troubleshooting
+
+- Ensure you have the necessary permissions to access the Azure subscriptions and resources.
+- Verify that the Azure PowerShell module is installed and up to date.
+- Check for any errors in the PowerShell terminal and address them accordingly.

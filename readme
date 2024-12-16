@@ -21,13 +21,9 @@ This PowerShell script collects metrics data for Azure SQL databases across all 
 
 1. Open a PowerShell terminal.
 
-2. Navigate to the directory containing the script:
 
-    ```powershell
-    cd /Users/robban/Documents/azure-sql-rightsize
-    ```
 
-3. Run the script with the desired output path for the CSV file:
+2. Run the script with the desired output path for the CSV file:
 
     ```powershell
     .\script.ps1 -outputpath "C:\path\to\output\directory\"
@@ -35,9 +31,9 @@ This PowerShell script collects metrics data for Azure SQL databases across all 
 
     If no output path is specified, the script will save the CSV file in the current directory.
 
-4. The script will prompt you to log in to your Azure account. Follow the instructions to authenticate.
+3. The script will prompt you to log in to your Azure account. Follow the instructions to authenticate.
 
-5. The script will collect metrics data for all SQL databases in your subscriptions and save the results to a CSV file named `data.csv` in the specified output directory.
+4. The script will collect metrics data for all SQL databases in your subscriptions and save the results to a CSV file named `data.csv` in the specified output directory.
 
 ## Output
 
